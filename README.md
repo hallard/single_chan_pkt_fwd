@@ -118,7 +118,7 @@ systemctl status single_chan_pkt_fwd
 
 To see gateway log in real time
 ```shell
-journalctl -f -u single_chan_pkt_fwd
+sudo journalctl -f -u single_chan_pkt_fwd
 ````
 
 Pictures
