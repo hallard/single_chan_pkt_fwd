@@ -97,6 +97,23 @@ Module-2 //have to check in my Pi
 
 ```
 
+* For [Uputronics LoRa Expansion][4] Shield    
+pins configuration in file `global_conf.json`
+
+```
+Module CE0
+  "pin_nss": 10,
+  "pin_dio0": 6,
+  "pin_rst": 0,
+  "pin_led1": 21
+
+Module CE1
+  "pin_nss": 11,
+  "pin_dio0": 27,
+  "pin_rst": 0,
+  "pin_led1": 29
+
+```
 Installation
 ------------
 
@@ -189,5 +206,6 @@ The source files in this repository are made available under the Eclipse Public 
 [1]: https://github.com/hallard/LoRasPI
 [2]: http://wiki.dragino.com/index.php?title=Lora/GPS_HAT
 [3]: https://github.com/hallard/RPI-Lora-Gateway
+[4]: https://store.uputronics.com/index.php?route=product/product&search=lora&product_id=68
  
 
