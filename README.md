@@ -73,10 +73,10 @@ pins configuration in `global_conf.json`
 pins configuration in file `global_conf.json`
 
 ```
-  "pin_nss": 8,
+  "pin_nss": 10,
   "pin_dio0": 6,
   "pin_rst": 3,
-  "pin_led1":4
+  "pin_led1": 5
 ```
 
 * For [RPI-Lora-Gateway][3] Shield    
