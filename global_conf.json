@@ -3,10 +3,10 @@
   {
     "freq": 868100000,
     "spread_factor": 7,
-    "pin_nss": 8,
+    "pin_nss": 10,
     "pin_dio0": 6,
     "pin_rst": 3,
-    "pin_led1":4
+    "pin_led1": 5
   },
   "gateway_conf":
   {
