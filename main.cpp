@@ -43,7 +43,7 @@ using namespace rapidjson;
 
 static const int CHANNEL = 0;
 
-bool sx1272 = true;
+bool sx1272 = false;
 
 struct sockaddr_in si_other;
 int s;
