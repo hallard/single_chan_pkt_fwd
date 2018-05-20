@@ -87,8 +87,8 @@ using namespace rapidjson;
 
 static const int SPI_CHANNEL = 0;
 
-bool sx1272 = true;
-
+bool sx1272 = false;
+uint8_t codingRateRegSet = 1; //using a def coding rating of 4/5
 struct sockaddr_in si_other;
 int s;
 int slen = sizeof(si_other);
@@ -144,9 +144,9 @@ char description[64] ; /* used for free form description */
 // Set spreading factor (SF7 - SF12), &nd  center frequency
 // Overwritten by the ones set in global_conf.json
 SpreadingFactor_t sf = SF7;
-uint16_t bw = 125;
-uint32_t freq = 868100000; // in Mhz! (868.1)
-
+uint32_t bw = 0;
+uint32_t freq = 0; // in Mhz! (868.1)
+uint8_t freqChannelID = 10;
 
 // Servers
 vector<Server_t> servers;
@@ -188,7 +188,18 @@ vector<Server_t> servers;
 #define REG_LNA                     0x0C
 #define LNA_MAX_GAIN                0x23
 #define LNA_OFF_GAIN                0x00
-#define LNA_LOW_GAIN                0x20
+#define LNA_LOW_GAIN                0x20 //default
+#define LNA_MIN_GAIN                0xC0
+
+#define REG_FSK_RX_CONFIG			0x0D
+#define REG_COMMON_LNA_GAIN			0x0C
+
+#define RX_RXCONFIG_AFCAUTO_ON		0x10
+#define RX_RXCONFIG_AGCAUTO_ON		0x08
+#define RX_RXTRIGER_PREAMBLE_DETECT 0x06
+#define RX_RXTRIGER_RSSI_PRE_DETECT 0x07
+#define RX_RXTRIGER_RSSI_DETECT		0x01
+#define RX_RXTRIGER_NO_DETECTION	0x00
 
 // CONF REG
 #define REG1                        0x0A
@@ -235,6 +246,28 @@ void Die(const char *s)
   exit(1);
 }
 
+uint8_t GetBandwidthSetting()
+{
+	uint8_t setting;
+	switch(bw)
+	{
+		case 500000:
+		setting = 9;
+		break;
+		
+		case 250000:
+		setting = 8;
+		break;
+		
+		case 125000:
+		default:
+		setting = 7;
+		break;
+	}
+	
+	return setting;
+}
+
 void SelectReceiver()
 {
   digitalWrite(ssPin, LOW);
@@ -271,6 +304,7 @@ void WriteRegister(uint8_t addr, uint8_t value)
 
 bool ReceivePkt(char* payload, uint8_t* p_length)
 {
+  printf("Reciving Data..\n");
   // clear rxDone
   WriteRegister(REG_IRQ_FLAGS, 0x40);
 
@@ -351,15 +385,16 @@ void SetupLoRa()
       Die("Unrecognized transceiver");
     }
   }
-
+  
+  WriteRegister(REG_FSK_RX_CONFIG,RX_RXCONFIG_AFCAUTO_ON | RX_RXTRIGER_PREAMBLE_DETECT |RX_RXCONFIG_AGCAUTO_ON);
   WriteRegister(REG_OPMODE, SX72_MODE_SLEEP);
 
   // set frequency
   uint64_t frf = ((uint64_t)freq << 19) / 32000000;
-  WriteRegister(REG_FRF_MSB, (uint8_t)(frf >> 16) );
-  WriteRegister(REG_FRF_MID, (uint8_t)(frf >> 8) );
-  WriteRegister(REG_FRF_LSB, (uint8_t)(frf >> 0) );
-
+  WriteRegister(REG_FRF_MSB, (uint8_t)((frf >> 16) & 0xFF));
+  WriteRegister(REG_FRF_MID, (uint8_t)((frf >> 8) & 0xFF));
+  WriteRegister(REG_FRF_LSB, (uint8_t)((frf >> 0) & 0xFF));
+  printf("setting Frf = %llu\n",frf);
   WriteRegister(REG_SYNC_WORD, 0x34); // LoRaWAN public sync word
 
   if (sx1272) {
@@ -375,7 +410,7 @@ void SetupLoRa()
     } else {
       WriteRegister(REG_MODEM_CONFIG3, 0x04);
     }
-    WriteRegister(REG_MODEM_CONFIG, 0x72);
+    WriteRegister(REG_MODEM_CONFIG, (GetBandwidthSetting() << 4) | (codingRateRegSet << 1));
     WriteRegister(REG_MODEM_CONFIG2, (sf << 4) | 0x04);
   }
 
@@ -386,11 +421,11 @@ void SetupLoRa()
   }
   WriteRegister(REG_MAX_PAYLOAD_LENGTH, 0x80);
   WriteRegister(REG_PAYLOAD_LENGTH, PAYLOAD_LENGTH);
-  WriteRegister(REG_HOP_PERIOD, 0xFF);
+  WriteRegister(REG_HOP_PERIOD, 0x00); //MK: Changed hop period from 0xFF to 0x00 turinng the frequncy hopping off
   WriteRegister(REG_FIFO_ADDR_PTR, ReadRegister(REG_FIFO_RX_BASE_AD));
 
   // Set Continous Receive Mode
-  WriteRegister(REG_LNA, LNA_MAX_GAIN);  // max lna gain
+  WriteRegister(REG_LNA, LNA_MAX_GAIN);  //lna gain
   WriteRegister(REG_OPMODE, SX72_MODE_RX_CONTINUOS);
 }
 
@@ -607,16 +642,14 @@ bool Receivepacket()
       writer.String("freq");
       writer.Double((double)freq / 1000000);
       writer.String("chan");
-      writer.Uint(0);
-      writer.String("rfch");
-      writer.Uint(0);
+      writer.Uint(freqChannelID);
       writer.String("stat");
       writer.Uint(1);
       writer.String("modu");
       writer.String("LORA");
       writer.String("datr");
       char datr[] = "SFxxBWxxx";
-      snprintf(datr, strlen(datr) + 1, "SF%hhuBW%hu", sf, bw);
+      snprintf(datr, strlen(datr) + 1, "SF%hhuBW%hu", sf, bw/1000);
       writer.String(datr);
       writer.String("codr");
       writer.String("4/5");
@@ -700,8 +733,7 @@ int main()
               (uint8_t)ifr.ifr_hwaddr.sa_data[4],
               (uint8_t)ifr.ifr_hwaddr.sa_data[5]
   );
-
-  printf("Listening at SF%i on %.6lf Mhz.\n", sf,(double)freq/1000000);
+  printf("Listening at Bw = %u, SF%i on Channel %u, Freq = %.6lf Mhz.\n", bw, sf, freqChannelID, (double)freq/1000000);
   printf("-----------------------------------\n");
 
   while(1) {
@@ -768,6 +800,10 @@ void LoadConfiguration(string configurationFile)
             freq = confIt->value.GetUint();
           } else if (key.compare("spread_factor") == 0) {
             sf = (SpreadingFactor_t)confIt->value.GetUint();
+          } else if (key.compare("freqChannelID") == 0) {
+            freqChannelID = confIt->value.GetUint();
+          } else if (key.compare("bandwidth") == 0) {
+            bw = confIt->value.GetUint();
           } else if (key.compare("pin_nss") == 0) {
             ssPin = confIt->value.GetUint();
           } else if (key.compare("pin_dio0") == 0) {
