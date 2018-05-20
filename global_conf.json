@@ -4,7 +4,7 @@
     "freq": 868300000,
     "freqChannelID": 1,
     "spread_factor": 7,
-    "bandwidth":250000,
+    "bandwidth":125000,
     "pin_nss": 6,
     "pin_dio0": 7,
     "pin_rst": 0,

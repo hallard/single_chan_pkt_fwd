@@ -188,7 +188,18 @@ vector<Server_t> servers;
 #define REG_LNA                     0x0C
 #define LNA_MAX_GAIN                0x23
 #define LNA_OFF_GAIN                0x00
-#define LNA_LOW_GAIN                0x20
+#define LNA_LOW_GAIN                0x20 //default
+#define LNA_MIN_GAIN                0xC0
+
+#define REG_FSK_RX_CONFIG			0x0D
+#define REG_COMMON_LNA_GAIN			0x0C
+
+#define RX_RXCONFIG_AFCAUTO_ON		0x10
+#define RX_RXCONFIG_AGCAUTO_ON		0x08
+#define RX_RXTRIGER_PREAMBLE_DETECT 0x06
+#define RX_RXTRIGER_RSSI_PRE_DETECT 0x07
+#define RX_RXTRIGER_RSSI_DETECT		0x01
+#define RX_RXTRIGER_NO_DETECTION	0x00
 
 // CONF REG
 #define REG1                        0x0A
@@ -374,7 +385,8 @@ void SetupLoRa()
       Die("Unrecognized transceiver");
     }
   }
-
+  
+  WriteRegister(REG_FSK_RX_CONFIG,RX_RXCONFIG_AFCAUTO_ON | RX_RXTRIGER_PREAMBLE_DETECT |RX_RXCONFIG_AGCAUTO_ON);
   WriteRegister(REG_OPMODE, SX72_MODE_SLEEP);
 
   // set frequency
@@ -413,7 +425,7 @@ void SetupLoRa()
   WriteRegister(REG_FIFO_ADDR_PTR, ReadRegister(REG_FIFO_RX_BASE_AD));
 
   // Set Continous Receive Mode
-  WriteRegister(REG_LNA, LNA_MAX_GAIN);  // max lna gain
+  WriteRegister(REG_LNA, LNA_MAX_GAIN);  //lna gain
   WriteRegister(REG_OPMODE, SX72_MODE_RX_CONTINUOS);
 }
 
