@@ -105,6 +105,7 @@ Install dependencies as indicated in original README.md below then
 ```shell
 cd /home/pi
 git clone https://github.com/hallard/single_chan_pkt_fwd
+cd single_chan_pkt_fwd
 make
 sudo make install
 ````
