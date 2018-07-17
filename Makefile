@@ -3,6 +3,8 @@
 
 CC = g++
 CFLAGS = -std=c++11 -c -Wall -I include/
+#Below line worked when the above was throwing error with g++ (Debian 4.6.3-14+rpi1) 4.6.3
+#CFLAGS = -std=c++0x -c -Wall -I include/
 LIBS = -lwiringPi
 
 all: single_chan_pkt_fwd
